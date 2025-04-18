@@ -16,6 +16,8 @@ class _HomeScreenState extends State<HomeScreen> {
   final TextEditingController amountController = TextEditingController();
   final TextEditingController daysController = TextEditingController();
   int _selectedIndex = 0;
+  ExpenseCategory? selectedCategory;
+  bool isAscending = false;
 
   // Sample expense data
   final List<Expense> expenses = [
@@ -87,7 +89,49 @@ class _HomeScreenState extends State<HomeScreen> {
       category: ExpenseCategory.medicine,
       amount: 15,
     ),
-
+    Expense(
+      date: DateTime.now().subtract(const Duration(days: 3)),
+      time: '14:22',
+      category: ExpenseCategory.food,
+      amount: 12.50,
+    ),
+    Expense(
+      date: DateTime.now().subtract(const Duration(days: 4)), 
+      time: '09:45',
+      category: ExpenseCategory.products,
+      amount: 35.99,
+    ),
+    Expense(
+      date: DateTime.now().subtract(const Duration(days: 4)),
+      time: '16:30',
+      category: ExpenseCategory.work,
+      amount: 75,
+      isIncome: true,
+    ),
+    Expense(
+      date: DateTime.now().subtract(const Duration(days: 5)),
+      time: '11:15',
+      category: ExpenseCategory.gym,
+      amount: 40,
+    ),
+    Expense(
+      date: DateTime.now().subtract(const Duration(days: 5)),
+      time: '19:20',
+      category: ExpenseCategory.medicine,
+      amount: 22.75,
+    ),
+    Expense(
+      date: DateTime.now().subtract(const Duration(days: 6)),
+      time: '08:50',
+      category: ExpenseCategory.food,
+      amount: 8.99,
+    ),
+    Expense(
+      date: DateTime.now().subtract(const Duration(days: 6)),
+      time: '13:40',
+      category: ExpenseCategory.other,
+      amount: 10,
+    ),
   ];
 
   @override
@@ -138,10 +182,119 @@ class _HomeScreenState extends State<HomeScreen> {
     return months[month - 1];
   }
 
+  void _showFilterDialog() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              title: const Text('Filter Expenses'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  DropdownButton<ExpenseCategory>(
+                    isExpanded: true,
+                    value: selectedCategory,
+                    hint: const Text('Select Category'),
+                    items: ExpenseCategory.values.map((category) {
+                      return DropdownMenuItem(
+                        value: category,
+                        child: Row(
+                          children: [
+                            Icon(category.icon, size: 20),
+                            const SizedBox(width: 8),
+                            Text(category.toString().split('.').last),
+                          ],
+                        ),
+                      );
+                    }).toList(),
+                    onChanged: (value) {
+                      setState(() {
+                        selectedCategory = value;
+                      });
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      const Text('Sort by Date:'),
+                      const Spacer(),
+                      TextButton.icon(
+                        onPressed: () {
+                          setState(() {
+                            isAscending = !isAscending;
+                          });
+                        },
+                        label: Text(
+                          !isAscending ? 'Newest First' : 'Oldest First',
+                          style: const TextStyle(color: Colors.green),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    setState(() {
+                      selectedCategory = null;
+                    });
+                  },
+                  child: const Text('Clear'),
+                ),
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: const Text('Cancel'),
+                ),
+                FilledButton(
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                    _applyFilters();
+                  },
+                  child: const Text('Apply'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  void _applyFilters() {
+    setState(() {
+      // The filtering will be applied in the _buildExpenseList method
+    });
+  }
+
   Widget _buildExpenseList() {
+    // Filter expenses by category if selected
+    var filteredExpenses = selectedCategory == null
+        ? expenses
+        : expenses.where((e) => e.category == selectedCategory).toList();
+
+    // Sort expenses by date and time
+    filteredExpenses.sort((a, b) {
+      // Compare dates first
+      int dateComparison = b.date.compareTo(a.date); // Default descending (newest first)
+      if (!isAscending) {
+        dateComparison = -dateComparison; // Flip for ascending order
+      }
+      
+      if (dateComparison == 0) {
+        // If same date, sort by time (latest time first for descending)
+        return isAscending 
+            ? a.time.compareTo(b.time)  // Ascending: earlier times first
+            : b.time.compareTo(a.time); // Descending: later times first
+      }
+      return dateComparison;
+    });
+
     // Group expenses by date
     Map<DateTime, List<Expense>> groupedExpenses = {};
-    for (var expense in expenses) {
+    for (var expense in filteredExpenses) {
       final date = DateTime(expense.date.year, expense.date.month, expense.date.day);
       if (!groupedExpenses.containsKey(date)) {
         groupedExpenses[date] = [];
@@ -149,11 +302,22 @@ class _HomeScreenState extends State<HomeScreen> {
       groupedExpenses[date]!.add(expense);
     }
 
+    // Sort expenses within each day by time
+    for (var expenses in groupedExpenses.values) {
+      expenses.sort((a, b) => isAscending 
+          ? a.time.compareTo(b.time)  // Ascending: earlier times first
+          : b.time.compareTo(a.time)); // Descending: later times first
+    }
+
     return Expanded(
       child: ListView.builder(
         itemCount: groupedExpenses.length,
         itemBuilder: (context, index) {
-          final date = groupedExpenses.keys.elementAt(index);
+          final dates = groupedExpenses.keys.toList()
+            ..sort((a, b) => isAscending 
+                ? a.compareTo(b)  // Ascending: older dates first
+                : b.compareTo(a)); // Descending: newer dates first
+          final date = dates[index];
           final dayExpenses = groupedExpenses[date]!;
           final totalForDay = dayExpenses.fold<double>(
             0,
@@ -223,12 +387,17 @@ class _HomeScreenState extends State<HomeScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Row(
+                  Row(
                     children: [
-                      Icon(Icons.check_circle_outline, color: Colors.green),
-                      SizedBox(width: 8),
-                      Icon(Icons.trending_up, color: Colors.green),
-                      SizedBox(width: 8),
+                      const Icon(Icons.check_circle_outline, color: Colors.green),
+                      const SizedBox(width: 8),
+                      const Icon(Icons.trending_up, color: Colors.green),
+                      const SizedBox(width: 8),
+                      IconButton(
+                        icon: const Icon(Icons.filter_list),
+                        color: selectedCategory != null ? Colors.green : Colors.grey,
+                        onPressed: _showFilterDialog,
+                      ),
                     ],
                   ),
                   Text(
