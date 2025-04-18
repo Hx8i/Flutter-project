@@ -1,28 +1,12 @@
 import 'package:flutter/material.dart';
 import '../models/expense.dart';
 import 'package:intl/intl.dart';
+import 'add_screen.dart';
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
-
-  @override
-  State<HomeScreen> createState() => _HomeScreenState();
-}
-
-class _HomeScreenState extends State<HomeScreen> {
-  double walletAmount = 144.77;
-  int daysRemaining = 13;
-  bool isEditing = false;
-  late double ExpensePerDay;  // Will be calculated in initState
-  final TextEditingController amountController = TextEditingController();
-  final TextEditingController daysController = TextEditingController();
-  int _selectedIndex = 0;
-  ExpenseCategory? selectedCategory;
-  bool isAscending = false;
-  DateTime selectedMonth = DateTime.now();
-
-  // Sample expense data with historical entries
-  final List<Expense> expenses = [
+  final Expense? initialExpense;
+  // Static list to maintain expenses across screen instances
+  static final List<Expense> allExpenses = [
     // April 2025 (Current month)
     Expense(
       date: DateTime(DateTime.now().subtract(const Duration(days: 0)).year, DateTime.now().subtract(const Duration(days: 0)).month, DateTime.now().subtract(const Duration(days: 0)).day),
@@ -123,39 +107,85 @@ class _HomeScreenState extends State<HomeScreen> {
     ),
   ];
 
+  const HomeScreen({
+    super.key,
+    this.initialExpense,
+  });
+
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  late double walletAmount;
+  int daysRemaining = 13;
+  bool isEditing = false;
+  late double ExpensePerDay;
+  final TextEditingController amountController = TextEditingController();
+  final TextEditingController daysController = TextEditingController();
+  int _selectedIndex = 0;
+  ExpenseCategory? selectedCategory;
+  bool isAscending = false;
+  DateTime selectedMonth = DateTime.now();
+
   @override
   void initState() {
     super.initState();
-    // Set initial month to April 2025
-    selectedMonth = DateTime(2025, 4);
+    selectedMonth = DateTime.now();
+    _calculateWalletAmount();
     amountController.text = walletAmount.toString();
     daysController.text = daysRemaining.toString();
     _calculateExpensePerDay();
   }
 
-  void _calculateExpensePerDay() {
-    ExpensePerDay = double.parse((walletAmount / daysRemaining).toStringAsFixed(2));
+  void _calculateWalletAmount() {
+    // Calculate wallet amount based on current month's transactions
+    final currentMonthTransactions = HomeScreen.allExpenses.where((e) =>
+      e.date.year == selectedMonth.year &&
+      e.date.month == selectedMonth.month
+    );
+
+    walletAmount = double.parse(
+      currentMonthTransactions.fold<double>(
+        0.0,
+        (sum, expense) => sum + (expense.isIncome ? expense.amount : -expense.amount)
+      ).toStringAsFixed(2)
+    );
   }
 
   void _toggleEdit() {
     setState(() {
       if (isEditing) {
-        // Update wallet amount
-        walletAmount = double.parse(
-          (double.tryParse(amountController.text) ?? walletAmount).toStringAsFixed(2)
-        );
-        // Update days remaining
         daysRemaining = int.tryParse(daysController.text) ?? daysRemaining;
-        // Recalculate expense per day
         _calculateExpensePerDay();
       }
       isEditing = !isEditing;
     });
   }
 
-  // Update the getters for calculations
+  void _calculateExpensePerDay() {
+    ExpensePerDay = double.parse((walletAmount / daysRemaining).toStringAsFixed(2));
+  }
+
+  void _previousMonth() {
+    setState(() {
+      selectedMonth = DateTime(selectedMonth.year, selectedMonth.month - 1);
+      _calculateWalletAmount();
+      _calculateExpensePerDay();
+    });
+  }
+
+  void _nextMonth() {
+    setState(() {
+      selectedMonth = DateTime(selectedMonth.year, selectedMonth.month + 1);
+      _calculateWalletAmount();
+      _calculateExpensePerDay();
+    });
+  }
+
+  // Update the getters for calculations to use the static list
   double get totalExpenses {
-    return double.parse(expenses
+    return double.parse(HomeScreen.allExpenses
         .where((e) => !e.isIncome && 
             e.date.year == selectedMonth.year && 
             e.date.month == selectedMonth.month)
@@ -164,7 +194,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   double get totalIncome {
-    return double.parse(expenses
+    return double.parse(HomeScreen.allExpenses
         .where((e) => e.isIncome && 
             e.date.year == selectedMonth.year && 
             e.date.month == selectedMonth.month)
@@ -173,18 +203,6 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   double get total => double.parse((totalIncome - totalExpenses).toStringAsFixed(2));
-
-  void _previousMonth() {
-    setState(() {
-      selectedMonth = DateTime(selectedMonth.year, selectedMonth.month - 1);
-    });
-  }
-
-  void _nextMonth() {
-    setState(() {
-      selectedMonth = DateTime(selectedMonth.year, selectedMonth.month + 1);
-    });
-  }
 
   @override
   void dispose() {
@@ -231,14 +249,26 @@ class _HomeScreenState extends State<HomeScreen> {
                     isExpanded: true,
                     value: selectedCategory,
                     hint: const Text('Select Category'),
-                    items: ExpenseCategory.values.map((category) {
+                    items: ExpenseCategory.allCategories.map((category) {
                       return DropdownMenuItem(
                         value: category,
                         child: Row(
                           children: [
                             Icon(category.icon, size: 20),
                             const SizedBox(width: 8),
-                            Text(category.toString().split('.').last),
+                            Text(category.name),
+                            if (category.isCustom)
+                              const Padding(
+                                padding: EdgeInsets.only(left: 8),
+                                child: Text(
+                                  '(Custom)',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.grey,
+                                    fontStyle: FontStyle.italic,
+                                  ),
+                                ),
+                              ),
                           ],
                         ),
                       );
@@ -260,6 +290,10 @@ class _HomeScreenState extends State<HomeScreen> {
                             isAscending = !isAscending;
                           });
                         },
+                        icon: Icon(
+                          isAscending ? Icons.arrow_upward : Icons.arrow_downward,
+                          color: Colors.green,
+                        ),
                         label: Text(
                           !isAscending ? 'Newest First' : 'Oldest First',
                           style: const TextStyle(color: Colors.green),
@@ -304,6 +338,19 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _onItemTapped(int index) {
+    if (index == 1) {
+      // Navigate to AddScreen
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (context) => AddScreen(
+            currentWalletAmount: walletAmount,
+          ),
+        ),
+      );
+      return;
+    }
+    
     setState(() {
       _selectedIndex = index;
     });
@@ -354,7 +401,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildExpenseList() {
     // First filter expenses by selected month
-    var filteredExpenses = expenses.where((e) => 
+    var filteredExpenses = HomeScreen.allExpenses.where((e) => 
       e.date.year == selectedMonth.year && 
       e.date.month == selectedMonth.month
     ).toList();
@@ -459,7 +506,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               ...dayExpenses.map((expense) => ListTile(
                 leading: Icon(expense.category.icon),
-                title: Text(expense.category.toString().split('.').last),
+                title: Text(expense.category.name),
                 trailing: Text(
                   '${expense.isIncome ? '+' : '-'}${expense.amount.toStringAsFixed(0)}\$',
                   style: TextStyle(
