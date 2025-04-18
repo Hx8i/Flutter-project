@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/expense.dart';
+import 'add_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -187,7 +188,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               ...dayExpenses.map((expense) => ListTile(
                 leading: Icon(expense.category.icon),
-                title: Text(expense.category.toString().split('.').last),
+                title: Text(expense.category.name),
                 trailing: Text(
                   '${expense.isIncome ? '+' : '-'}${expense.amount.toStringAsFixed(0)}\$',
                   style: TextStyle(
@@ -208,6 +209,31 @@ class _HomeScreenState extends State<HomeScreen> {
   void _onItemTapped(int index) {
     setState(() {
       _selectedIndex = index;
+      if (index == 1) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => AddScreen(
+              onExpenseAdded: (expense) {
+                setState(() {
+                  expenses.insert(0, expense);
+                  if (expense.isIncome) {
+                    walletAmount += expense.amount;
+                  } else {
+                    walletAmount -= expense.amount;
+                  }
+                  ExpensePerDay = double.parse((walletAmount / daysRemaining).toStringAsFixed(2));
+                });
+              },
+              currentWalletAmount: walletAmount,
+            ),
+          ),
+        ).then((_) {
+          setState(() {
+            _selectedIndex = 0;
+          });
+        });
+      }
     });
   }
 
