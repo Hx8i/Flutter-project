@@ -140,17 +140,31 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _calculateWalletAmount() {
-    // Calculate wallet amount based on current month's transactions
-    final currentMonthTransactions = HomeScreen.allExpenses.where((e) =>
-      e.date.year == selectedMonth.year &&
-      e.date.month == selectedMonth.month
-    );
+    // Calculate total from all previous months
+    final previousMonthsTotal = HomeScreen.allExpenses
+        .where((e) => 
+          e.date.year < selectedMonth.year || 
+          (e.date.year == selectedMonth.year && e.date.month < selectedMonth.month)
+        )
+        .fold<double>(
+          0.0,
+          (sum, expense) => sum + (expense.isIncome ? expense.amount : -expense.amount)
+        );
 
+    // Calculate current month's transactions
+    final currentMonthTransactions = HomeScreen.allExpenses
+        .where((e) => 
+          e.date.year == selectedMonth.year && 
+          e.date.month == selectedMonth.month
+        )
+        .fold<double>(
+          0.0,
+          (sum, expense) => sum + (expense.isIncome ? expense.amount : -expense.amount)
+        );
+
+    // Total wallet amount = previous months total + current month total
     walletAmount = double.parse(
-      currentMonthTransactions.fold<double>(
-        0.0,
-        (sum, expense) => sum + (expense.isIncome ? expense.amount : -expense.amount)
-      ).toStringAsFixed(2)
+      (previousMonthsTotal + currentMonthTransactions).toStringAsFixed(2)
     );
   }
 
