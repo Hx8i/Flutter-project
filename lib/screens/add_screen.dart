@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/expense.dart';
 import 'home_screen.dart';
+import 'stats_screen.dart';
 
 class AddScreen extends StatefulWidget {
   final double currentWalletAmount;
@@ -37,6 +38,12 @@ class _AddScreenState extends State<AddScreen> {
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (context) => const HomeScreen()),
+      );
+    } else if (index == 2) {
+      // Navigate to Stats
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const StatsScreen()),
       );
     } else {
       setState(() {
