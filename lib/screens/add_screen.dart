@@ -21,6 +21,7 @@ class _AddScreenState extends State<AddScreen> {
   bool isIncome = false;
   final TextEditingController noteController = TextEditingController();
   final List<ExpenseCategory> customCategories = [];
+  DateTime selectedDate = DateTime.now();
 
   @override
   void dispose() {
@@ -29,11 +30,25 @@ class _AddScreenState extends State<AddScreen> {
     super.dispose();
   }
 
+  Future<void> _selectDate(BuildContext context) async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: selectedDate,
+      firstDate: DateTime(2020),
+      lastDate: DateTime.now(),
+    );
+    if (picked != null && picked != selectedDate) {
+      setState(() {
+        selectedDate = picked;
+      });
+    }
+  }
+
   void _addExpense() {
     if (amountController.text.isEmpty) return;
 
     final expense = Expense(
-      date: DateTime.now(),
+      date: selectedDate,
       time: '${DateTime.now().hour}:${DateTime.now().minute}',
       category: selectedCategory,
       amount: double.parse(amountController.text),
@@ -216,6 +231,26 @@ class _AddScreenState extends State<AddScreen> {
                     color: Colors.green,
                   ),
                 ],
+              ),
+              const SizedBox(height: 20),
+              InkWell(
+                onTap: () => _selectDate(context),
+                child: InputDecorator(
+                  decoration: const InputDecoration(
+                    labelText: 'Date',
+                    border: OutlineInputBorder(),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        '${selectedDate.day}/${selectedDate.month}/${selectedDate.year}',
+                        style: const TextStyle(fontSize: 16),
+                      ),
+                      const Icon(Icons.calendar_today, color: Colors.green),
+                    ],
+                  ),
+                ),
               ),
               const SizedBox(height: 20),
               TextField(
