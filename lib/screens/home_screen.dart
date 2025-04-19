@@ -6,6 +6,8 @@ import 'stats_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   final Expense? initialExpense;
+  final Function() onThemeToggle;
+  final bool isDarkMode;
   static final List<Expense> allExpenses = [
     Expense(
       date: DateTime(DateTime.now().subtract(const Duration(days: 0)).year, DateTime.now().subtract(const Duration(days: 0)).month, DateTime.now().subtract(const Duration(days: 0)).day),
@@ -105,6 +107,8 @@ class HomeScreen extends StatefulWidget {
   const HomeScreen({
     super.key,
     this.initialExpense,
+    required this.onThemeToggle,
+    required this.isDarkMode,
   });
 
   @override
@@ -375,18 +379,21 @@ class _HomeScreenState extends State<HomeScreen> {
         MaterialPageRoute(
           builder: (context) => AddScreen(
             currentWalletAmount: walletAmount,
+            onThemeToggle: widget.onThemeToggle,
+            isDarkMode: widget.isDarkMode,
           ),
         ),
       );
-      return;
     } else if (index == 2) {
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
-          builder: (context) => const StatsScreen(),
+          builder: (context) => StatsScreen(
+            onThemeToggle: widget.onThemeToggle,
+            isDarkMode: widget.isDarkMode,
+          ),
         ),
       );
-      return;
     }
     
     setState(() {
@@ -439,7 +446,296 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    
+    return Scaffold(
+      backgroundColor: theme.scaffoldBackgroundColor,
+      body: SafeArea(
+        child: SingleChildScrollView(
+          child: Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.settings),
+                          color: theme.colorScheme.primary,
+                          onPressed: _showSettingsDialog,
+                        ),
+                        const SizedBox(width: 8),
+                        IconButton(
+                          icon: Icon(isDark ? Icons.light_mode : Icons.dark_mode),
+                          color: theme.colorScheme.primary,
+                          onPressed: widget.onThemeToggle,
+                        ),
+                        const SizedBox(width: 8),
+                        IconButton(
+                          icon: const Icon(Icons.filter_list),
+                          color: selectedCategory != null ? theme.colorScheme.primary : Colors.grey,
+                          onPressed: _showFilterDialog,
+                        ),
+                      ],
+                    ),
+                    if (!isEditing)
+                      Text(
+                        '${walletAmount.toStringAsFixed(2)}\$ on $daysRemaining days',
+                        style: TextStyle(
+                          color: theme.colorScheme.primary,
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                child: Column(
+                  children: [
+                    if (isEditing) ...[
+                      TextField(
+                        controller: amountController,
+                        keyboardType: TextInputType.number,
+                        decoration: InputDecoration(
+                          labelText: 'Wallet Amount',
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          prefixIcon: Icon(Icons.account_balance_wallet, color: theme.colorScheme.primary),
+                          prefixText: '\$',
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      TextField(
+                        controller: daysController,
+                        keyboardType: TextInputType.number,
+                        decoration: InputDecoration(
+                          labelText: 'Days Remaining',
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          prefixIcon: Icon(Icons.calendar_today, color: theme.colorScheme.primary),
+                        ),
+                      ),
+                    ] else ...[
+                      Container(
+                        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
+                        decoration: BoxDecoration(
+                          color: theme.colorScheme.primary.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: theme.colorScheme.primary.withOpacity(0.3)),
+                        ),
+                        child: Column(
+                          children: [
+                            Text(
+                              'Available Balance',
+                              style: TextStyle(
+                                fontSize: 16,
+                                color: theme.colorScheme.onBackground.withOpacity(0.7),
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              '\$${walletAmount.toStringAsFixed(2)}',
+                              style: TextStyle(
+                                fontSize: 48,
+                                fontWeight: FontWeight.bold,
+                                color: theme.colorScheme.primary,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              'for $daysRemaining days',
+                              style: TextStyle(
+                                fontSize: 16,
+                                color: theme.colorScheme.onBackground.withOpacity(0.7),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                    const SizedBox(height: 16),
+                    Container(
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: theme.colorScheme.primary),
+                      ),
+                      child: TextButton.icon(
+                        onPressed: _toggleEdit,
+                        icon: Icon(
+                          isEditing ? Icons.save : Icons.edit,
+                          color: theme.colorScheme.primary,
+                        ),
+                        label: Text(
+                          isEditing ? 'Save' : 'Edit',
+                          style: TextStyle(
+                            color: theme.colorScheme.primary,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        style: TextButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Container(
+                      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.onBackground.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.wallet, 
+                            color: theme.colorScheme.onBackground.withOpacity(0.7)
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            '\$${ExpensePerDay.toStringAsFixed(2)} per Day',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: theme.colorScheme.onBackground.withOpacity(0.7),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              _buildMonthSelector(),
+              Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  children: [
+                    _buildExpenseList(),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+      bottomNavigationBar: BottomNavigationBar(
+        items: const <BottomNavigationBarItem>[
+          BottomNavigationBarItem(
+            icon: Icon(Icons.home),
+            label: 'Home',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.add_circle_outline),
+            label: 'Add',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.analytics),
+            label: 'Analysis',
+          ),
+        ],
+        currentIndex: _selectedIndex,
+        selectedItemColor: theme.colorScheme.primary,
+        backgroundColor: theme.scaffoldBackgroundColor,
+        onTap: _onItemTapped,
+      ),
+    );
+  }
+
+  Widget _buildMonthSelector() {
+    final theme = Theme.of(context);
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 16),
+      decoration: BoxDecoration(
+        border: Border(
+          bottom: BorderSide(
+            color: theme.colorScheme.onBackground.withOpacity(0.1),
+            width: 0.5,
+          ),
+        ),
+      ),
+      child: Column(
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              IconButton(
+                icon: const Icon(Icons.chevron_left),
+                onPressed: () {
+                  setState(() {
+                    selectedMonth = DateTime(selectedMonth.year, selectedMonth.month - 1);
+                  });
+                },
+                color: theme.colorScheme.primary,
+              ),
+              Text(
+                DateFormat('MMMM, yyyy').format(selectedMonth),
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: theme.colorScheme.onBackground,
+                ),
+              ),
+              IconButton(
+                icon: const Icon(Icons.chevron_right),
+                onPressed: () {
+                  setState(() {
+                    selectedMonth = DateTime(selectedMonth.year, selectedMonth.month + 1);
+                  });
+                },
+                color: theme.colorScheme.primary,
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              _buildSummaryCard('EXPENSE', totalExpenses, theme.colorScheme.error),
+              _buildSummaryCard('INCOME', totalIncome, theme.colorScheme.primary),
+              _buildSummaryCard('TOTAL', total, total >= 0 ? theme.colorScheme.primary : theme.colorScheme.error),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSummaryCard(String title, double amount, Color color) {
+    final theme = Theme.of(context);
+    return Column(
+      children: [
+        Text(
+          title,
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.bold,
+            color: theme.colorScheme.onBackground,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          '\$${amount.toStringAsFixed(2)}',
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+            color: color,
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _buildExpenseList() {
+    final theme = Theme.of(context);
     var filteredExpenses = HomeScreen.allExpenses.where((e) => 
       e.date.year == selectedMonth.year && 
       e.date.month == selectedMonth.month
@@ -473,451 +769,153 @@ class _HomeScreenState extends State<HomeScreen> {
     }
 
     if (groupedExpenses.isEmpty) {
-      return Expanded(
-        child: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(
-                Icons.receipt_long,
-                size: 64,
-                color: Colors.grey,
-              ),
-              const SizedBox(height: 16),
-              Text(
-                'No transactions in ${DateFormat('MMMM yyyy').format(selectedMonth)}',
-                style: const TextStyle(
-                  fontSize: 16,
-                  color: Colors.grey,
-                ),
-              ),
-            ],
-          ),
-        ),
-      );
-    }
-
-    return Expanded(
-      child: ListView.builder(
-        itemCount: groupedExpenses.length,
-        itemBuilder: (context, index) {
-          final dates = groupedExpenses.keys.toList()
-            ..sort((a, b) => isAscending 
-                ? a.compareTo(b)
-                : b.compareTo(a));
-          final date = dates[index];
-          final dayExpenses = groupedExpenses[date]!;
-          final totalForDay = dayExpenses.fold<double>(
-            0,
-            (sum, expense) => sum + (expense.isIncome ? expense.amount : -expense.amount),
-          );
-
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 8.0),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      _formatDate(date),
-                      style: const TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    Text(
-                      '${totalForDay.toStringAsFixed(0)}\$',
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        color: totalForDay >= 0 ? Colors.green : Colors.red,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              ...dayExpenses.map((expense) => Container(
-                margin: const EdgeInsets.symmetric(vertical: 4),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(12),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.grey.withOpacity(0.1),
-                      spreadRadius: 1,
-                      blurRadius: 4,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
-                ),
-                child: ListTile(
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  leading: Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: expense.isIncome 
-                          ? Colors.green.withOpacity(0.1)
-                          : Colors.red.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Icon(
-                      expense.category.icon,
-                      color: expense.isIncome ? Colors.green : Colors.red,
-                    ),
-                  ),
-                  title: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        expense.category.name,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                        ),
-                      ),
-                      Text(
-                        '${expense.isIncome ? '+' : '-'}${expense.amount.toStringAsFixed(0)}\$',
-                        style: TextStyle(
-                          color: expense.isIncome ? Colors.green : Colors.red,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                        ),
-                      ),
-                    ],
-                  ),
-                  subtitle: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        expense.time,
-                        style: const TextStyle(
-                          color: Colors.grey,
-                          fontSize: 14,
-                        ),
-                      ),
-                      if (expense.note != null && expense.note!.isNotEmpty)
-                        Text(
-                          expense.note!,
-                          style: const TextStyle(
-                            fontStyle: FontStyle.italic,
-                            color: Colors.grey,
-                            fontSize: 14,
-                          ),
-                        ),
-                    ],
-                  ),
-                  trailing: Container(
-                    decoration: BoxDecoration(
-                      color: Colors.red.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: IconButton(
-                      icon: const Icon(Icons.delete_outline, color: Colors.red),
-                      onPressed: () {
-                        showDialog(
-                          context: context,
-                          builder: (context) => AlertDialog(
-                            title: const Text('Delete Transaction'),
-                            content: const Text('Are you sure you want to delete this transaction?'),
-                            actions: [
-                              TextButton(
-                                onPressed: () => Navigator.pop(context),
-                                child: const Text('Cancel'),
-                              ),
-                              FilledButton(
-                                onPressed: () {
-                                  _deleteExpense(expense);
-                                  Navigator.pop(context);
-                                },
-                                style: FilledButton.styleFrom(
-                                  backgroundColor: Colors.red,
-                                ),
-                                child: const Text('Delete'),
-                              ),
-                            ],
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-                ),
-              )),
-              const Divider(),
-            ],
-          );
-        },
-      ),
-    );
-  }
-
-  Widget _buildMonthSelector() {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 16),
-      decoration: const BoxDecoration(
-        border: Border(
-          bottom: BorderSide(color: Colors.grey, width: 0.5),
-        ),
-      ),
-      child: Column(
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              IconButton(
-                icon: const Icon(Icons.chevron_left),
-                onPressed: () {
-                  setState(() {
-                    selectedMonth = DateTime(selectedMonth.year, selectedMonth.month - 1);
-                  });
-                },
-                color: Colors.green,
-              ),
-              Text(
-                DateFormat('MMMM, yyyy').format(selectedMonth),
-                style: const TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              IconButton(
-                icon: const Icon(Icons.chevron_right),
-                onPressed: () {
-                  setState(() {
-                    selectedMonth = DateTime(selectedMonth.year, selectedMonth.month + 1);
-                  });
-                },
-                color: Colors.green,
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              _buildSummaryCard('EXPENSE', totalExpenses, Colors.red),
-              _buildSummaryCard('INCOME', totalIncome, Colors.green),
-              _buildSummaryCard('TOTAL', total, total >= 0 ? Colors.green : Colors.red),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSummaryCard(String title, double amount, Color color) {
-    return Column(
-      children: [
-        Text(
-          title,
-          style: const TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          '\$${amount.toStringAsFixed(2)}',
-          style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
-            color: color,
-          ),
-        ),
-      ],
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.white,
-      body: SafeArea(
+      return Center(
         child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Row(
-                    children: [
-                      IconButton(
-                        icon: const Icon(Icons.settings),
-                        color: Colors.green,
-                        onPressed: _showSettingsDialog,
-                      ),
-                      const SizedBox(width: 8),
-                      IconButton(
-                        icon: const Icon(Icons.filter_list),
-                        color: selectedCategory != null ? Colors.green : Colors.grey,
-                        onPressed: _showFilterDialog,
-                      ),
-                    ],
-                  ),
-                  if (!isEditing)
-                    Text(
-                      '${walletAmount.toStringAsFixed(2)}\$ on $daysRemaining days',
-                      style: const TextStyle(
-                        color: Colors.green,
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                ],
-              ),
+            const Icon(
+              Icons.receipt_long,
+              size: 64,
+              color: Colors.grey,
             ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-              child: Column(
-                children: [
-                  if (isEditing) ...[
-                    TextField(
-                      controller: amountController,
-                      keyboardType: TextInputType.number,
-                      decoration: InputDecoration(
-                        labelText: 'Wallet Amount',
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        prefixIcon: const Icon(Icons.account_balance_wallet, color: Colors.green),
-                        prefixText: '\$',
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    TextField(
-                      controller: daysController,
-                      keyboardType: TextInputType.number,
-                      decoration: InputDecoration(
-                        labelText: 'Days Remaining',
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        prefixIcon: const Icon(Icons.calendar_today, color: Colors.green),
-                      ),
-                    ),
-                  ] else ...[
-                    Container(
-                      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
-                      decoration: BoxDecoration(
-                        color: Colors.green.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: Colors.green.withOpacity(0.3)),
-                      ),
-                      child: Column(
-                        children: [
-                          const Text(
-                            'Available Balance',
-                            style: TextStyle(
-                              fontSize: 16,
-                              color: Colors.grey,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            '\$${walletAmount.toStringAsFixed(2)}',
-                            style: const TextStyle(
-                              fontSize: 48,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.green,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            'for $daysRemaining days',
-                            style: const TextStyle(
-                              fontSize: 16,
-                              color: Colors.grey,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                  const SizedBox(height: 16),
-                  Container(
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.green),
-                    ),
-                    child: TextButton.icon(
-                      onPressed: _toggleEdit,
-                      icon: Icon(
-                        isEditing ? Icons.save : Icons.edit,
-                        color: Colors.green,
-                      ),
-                      label: Text(
-                        isEditing ? 'Save' : 'Edit',
-                        style: const TextStyle(
-                          color: Colors.green,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      style: TextButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  Container(
-                    padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-                    decoration: BoxDecoration(
-                      color: Colors.grey.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(Icons.wallet, color: Colors.grey),
-                        const SizedBox(width: 8),
-                        Text(
-                          '\$${ExpensePerDay.toStringAsFixed(2)} per Day',
-                          style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.grey,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            _buildMonthSelector(),
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  children: [
-                    _buildExpenseList(),
-                  ],
-                ),
+            const SizedBox(height: 16),
+            Text(
+              'No transactions in ${DateFormat('MMMM yyyy').format(selectedMonth)}',
+              style: const TextStyle(
+                fontSize: 16,
+                color: Colors.grey,
               ),
             ),
           ],
         ),
-      ),
-      bottomNavigationBar: BottomNavigationBar(
-        items: const <BottomNavigationBarItem>[
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home),
-            label: 'Home',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.add_circle_outline),
-            label: 'Add',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.analytics),
-            label: 'Analysis',
-          ),
-        ],
-        currentIndex: _selectedIndex,
-        selectedItemColor: Colors.green,
-        onTap: _onItemTapped,
-      ),
+      );
+    }
+
+    final dates = groupedExpenses.keys.toList()
+      ..sort((a, b) => isAscending 
+          ? a.compareTo(b)
+          : b.compareTo(a));
+
+    return Column(
+      children: dates.map((date) {
+        final dayExpenses = groupedExpenses[date]!;
+        final totalForDay = dayExpenses.fold<double>(
+          0,
+          (sum, expense) => sum + (expense.isIncome ? expense.amount : -expense.amount),
+        );
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 8.0),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    _formatDate(date),
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: theme.colorScheme.onBackground,
+                    ),
+                  ),
+                  Text(
+                    '${totalForDay.toStringAsFixed(0)}\$',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: totalForDay >= 0 ? theme.colorScheme.primary : theme.colorScheme.error,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            ...dayExpenses.map((expense) => Container(
+              margin: const EdgeInsets.symmetric(vertical: 4),
+              decoration: BoxDecoration(
+                color: theme.cardTheme.color,
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [
+                  BoxShadow(
+                    color: theme.colorScheme.onBackground.withOpacity(0.1),
+                    spreadRadius: 1,
+                    blurRadius: 4,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: ListTile(
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                leading: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: (expense.isIncome ? theme.colorScheme.primary : theme.colorScheme.error).withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Icon(
+                    expense.category.icon,
+                    color: expense.isIncome ? theme.colorScheme.primary : theme.colorScheme.error,
+                  ),
+                ),
+                title: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      expense.category.name,
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                        color: theme.colorScheme.onBackground,
+                      ),
+                    ),
+                    Text(
+                      '${expense.isIncome ? '+' : '-'}${expense.amount.toStringAsFixed(0)}\$',
+                      style: TextStyle(
+                        color: expense.isIncome ? theme.colorScheme.primary : theme.colorScheme.error,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                    ),
+                  ],
+                ),
+                subtitle: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      expense.time,
+                      style: TextStyle(
+                        color: theme.colorScheme.onBackground.withOpacity(0.7),
+                        fontSize: 14,
+                      ),
+                    ),
+                    if (expense.note != null && expense.note!.isNotEmpty)
+                      Text(
+                        expense.note!,
+                        style: TextStyle(
+                          fontStyle: FontStyle.italic,
+                          color: theme.colorScheme.onBackground.withOpacity(0.7),
+                          fontSize: 14,
+                        ),
+                      ),
+                  ],
+                ),
+                trailing: Container(
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.error.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: IconButton(
+                    icon: Icon(Icons.delete_outline, color: theme.colorScheme.error),
+                    onPressed: () => _deleteExpense(expense),
+                  ),
+                ),
+              ),
+            )),
+            Divider(color: theme.colorScheme.onBackground.withOpacity(0.1)),
+          ],
+        );
+      }).toList(),
     );
   }
 } 

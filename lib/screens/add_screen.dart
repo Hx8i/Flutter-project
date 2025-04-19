@@ -5,10 +5,14 @@ import 'stats_screen.dart';
 
 class AddScreen extends StatefulWidget {
   final double currentWalletAmount;
+  final Function() onThemeToggle;
+  final bool isDarkMode;
 
   const AddScreen({
     super.key,
     required this.currentWalletAmount,
+    required this.onThemeToggle,
+    required this.isDarkMode,
   });
 
   @override
@@ -36,12 +40,20 @@ class _AddScreenState extends State<AddScreen> {
     if (index == 0) {
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (context) => const HomeScreen()),
+        MaterialPageRoute(builder: (context) => HomeScreen(
+          onThemeToggle: widget.onThemeToggle,
+          isDarkMode: widget.isDarkMode,
+        )),
       );
     } else if (index == 2) {
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (context) => const StatsScreen()),
+        MaterialPageRoute(
+          builder: (context) => StatsScreen(
+            onThemeToggle: widget.onThemeToggle,
+            isDarkMode: widget.isDarkMode,
+          ),
+        ),
       );
     } else {
       setState(() {
@@ -90,7 +102,10 @@ class _AddScreenState extends State<AddScreen> {
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(
-        builder: (context) => const HomeScreen(),
+        builder: (context) => HomeScreen(
+          onThemeToggle: widget.onThemeToggle,
+          isDarkMode: widget.isDarkMode,
+        ),
       ),
     );
   }
@@ -186,11 +201,12 @@ class _AddScreenState extends State<AddScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
         title: Text(isIncome ? 'Add Income' : 'Add Expense'),
-        backgroundColor: Colors.white,
+        backgroundColor: theme.appBarTheme.backgroundColor,
         elevation: 0,
       ),
       body: SafeArea(
@@ -202,19 +218,22 @@ class _AddScreenState extends State<AddScreen> {
               TextField(
                 controller: amountController,
                 keyboardType: TextInputType.number,
-                decoration: const InputDecoration(
+                style: TextStyle(color: theme.colorScheme.onBackground),
+                decoration: InputDecoration(
                   labelText: 'Amount',
+                  labelStyle: TextStyle(color: theme.colorScheme.onBackground),
                   border: OutlineInputBorder(),
                   prefixText: '\$',
+                  prefixStyle: TextStyle(color: theme.colorScheme.onBackground),
                 ),
               ),
               const SizedBox(height: 20),
               Row(
                 children: [
-                  const Text('Type: '),
+                  Text('Type: ', style: TextStyle(color: theme.colorScheme.onBackground)),
                   const SizedBox(width: 10),
                   ChoiceChip(
-                    label: const Text('Expense'),
+                    label: Text('Expense', style: TextStyle(color: !isIncome ? Colors.white : theme.colorScheme.onBackground)),
                     selected: !isIncome,
                     onSelected: (selected) {
                       setState(() {
@@ -224,7 +243,7 @@ class _AddScreenState extends State<AddScreen> {
                   ),
                   const SizedBox(width: 10),
                   ChoiceChip(
-                    label: const Text('Income'),
+                    label: Text('Income', style: TextStyle(color: isIncome ? Colors.white : theme.colorScheme.onBackground)),
                     selected: isIncome,
                     onSelected: (selected) {
                       setState(() {
@@ -240,8 +259,10 @@ class _AddScreenState extends State<AddScreen> {
                   Expanded(
                     child: DropdownButtonFormField<ExpenseCategory>(
                       value: selectedCategory,
-                      decoration: const InputDecoration(
+                      style: TextStyle(color: theme.colorScheme.onBackground),
+                      decoration: InputDecoration(
                         labelText: 'Category',
+                        labelStyle: TextStyle(color: theme.colorScheme.onBackground),
                         border: OutlineInputBorder(),
                       ),
                       items: ExpenseCategory.allCategories.map((category) {
@@ -249,9 +270,9 @@ class _AddScreenState extends State<AddScreen> {
                           value: category,
                           child: Row(
                             children: [
-                              Icon(category.icon),
+                              Icon(category.icon, color: theme.colorScheme.onBackground),
                               const SizedBox(width: 8),
-                              Text(category.name),
+                              Text(category.name, style: TextStyle(color: theme.colorScheme.onBackground)),
                             ],
                           ),
                         );
@@ -268,8 +289,7 @@ class _AddScreenState extends State<AddScreen> {
                   const SizedBox(width: 8),
                   IconButton(
                     onPressed: _showAddCategoryDialog,
-                    icon: const Icon(Icons.add_circle_outline),
-                    color: Colors.green,
+                    icon: Icon(Icons.add_circle_outline, color: theme.colorScheme.primary),
                   ),
                 ],
               ),
@@ -277,8 +297,9 @@ class _AddScreenState extends State<AddScreen> {
               InkWell(
                 onTap: () => _selectDate(context),
                 child: InputDecorator(
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     labelText: 'Date',
+                    labelStyle: TextStyle(color: theme.colorScheme.onBackground),
                     border: OutlineInputBorder(),
                   ),
                   child: Row(
@@ -286,9 +307,9 @@ class _AddScreenState extends State<AddScreen> {
                     children: [
                       Text(
                         '${selectedDate.day}/${selectedDate.month}/${selectedDate.year}',
-                        style: const TextStyle(fontSize: 16),
+                        style: TextStyle(fontSize: 16, color: theme.colorScheme.onBackground),
                       ),
-                      const Icon(Icons.calendar_today, color: Colors.green),
+                      Icon(Icons.calendar_today, color: theme.colorScheme.primary),
                     ],
                   ),
                 ),
@@ -296,8 +317,10 @@ class _AddScreenState extends State<AddScreen> {
               const SizedBox(height: 20),
               TextField(
                 controller: noteController,
-                decoration: const InputDecoration(
+                style: TextStyle(color: theme.colorScheme.onBackground),
+                decoration: InputDecoration(
                   labelText: 'Note (Optional)',
+                  labelStyle: TextStyle(color: theme.colorScheme.onBackground),
                   border: OutlineInputBorder(),
                 ),
                 maxLines: 2,
@@ -306,14 +329,14 @@ class _AddScreenState extends State<AddScreen> {
               ElevatedButton(
                 onPressed: _addExpense,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.green,
+                  backgroundColor: theme.colorScheme.primary,
                   padding: const EdgeInsets.symmetric(vertical: 16),
                 ),
-                child: const Text(
+                child: Text(
                   'Add Transaction',
                   style: TextStyle(
                     fontSize: 18,
-                    color: Colors.white,
+                    color: theme.colorScheme.onPrimary,
                   ),
                 ),
               ),
@@ -337,7 +360,8 @@ class _AddScreenState extends State<AddScreen> {
           ),
         ],
         currentIndex: _selectedIndex,
-        selectedItemColor: Colors.green,
+        selectedItemColor: theme.colorScheme.primary,
+        backgroundColor: theme.scaffoldBackgroundColor,
         onTap: _onItemTapped,
       ),
     );
