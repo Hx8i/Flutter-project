@@ -20,7 +20,7 @@ class _AddScreenState extends State<AddScreen> {
   ExpenseCategory selectedCategory = ExpenseCategory.food;
   bool isIncome = false;
   final TextEditingController noteController = TextEditingController();
-  int _selectedIndex = 1; // Start with Add tab selected
+  int _selectedIndex = 1;
   DateTime selectedDate = DateTime.now();
 
   @override
@@ -34,13 +34,11 @@ class _AddScreenState extends State<AddScreen> {
     if (index == _selectedIndex) return;
 
     if (index == 0) {
-      // Navigate to Home
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (context) => const HomeScreen()),
       );
     } else if (index == 2) {
-      // Navigate to Stats
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (context) => const StatsScreen()),
@@ -79,10 +77,8 @@ class _AddScreenState extends State<AddScreen> {
       note: noteController.text.isEmpty ? null : noteController.text,
     );
 
-    // Add the expense to the static list
     HomeScreen.allExpenses.add(expense);
 
-    // Sort the expenses by date and time
     HomeScreen.allExpenses.sort((a, b) {
       final dateComparison = b.date.compareTo(a.date);
       if (dateComparison == 0) {
@@ -91,7 +87,6 @@ class _AddScreenState extends State<AddScreen> {
       return dateComparison;
     });
 
-    // Navigate back to HomeScreen
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(
@@ -174,12 +169,10 @@ class _AddScreenState extends State<AddScreen> {
                     categoryNameController.text,
                     selectedIcon,
                   );
-                  // Set the new category as selected
                   setState(() {
                     selectedCategory = newCategory;
                   });
                   Navigator.pop(context);
-                  // Rebuild the main screen to show the new category
                   this.setState(() {});
                 }
               },

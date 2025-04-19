@@ -6,9 +6,7 @@ import 'stats_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   final Expense? initialExpense;
-  // Static list to maintain expenses across screen instances
   static final List<Expense> allExpenses = [
-    // April 2025 (Current month)
     Expense(
       date: DateTime(DateTime.now().subtract(const Duration(days: 0)).year, DateTime.now().subtract(const Duration(days: 0)).month, DateTime.now().subtract(const Duration(days: 0)).day),
       time: '18:40',
@@ -40,8 +38,6 @@ class HomeScreen extends StatefulWidget {
       category: ExpenseCategory.products,
       amount: 95,
     ),
-
-    // March 2025 Data
     Expense(
       date: DateTime(2025, 3, 15),
       time: '09:00',
@@ -73,8 +69,6 @@ class HomeScreen extends StatefulWidget {
       category: ExpenseCategory.gym,
       amount: 50,
     ),
-
-    // February 2025 Data
     Expense(
       date: DateTime(2025, 2, 1),
       time: '09:00',
@@ -140,7 +134,6 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _calculateWalletAmount() {
-    // Calculate total from all previous months
     final previousMonthsTotal = HomeScreen.allExpenses
         .where((e) => 
           e.date.year < selectedMonth.year || 
@@ -151,7 +144,6 @@ class _HomeScreenState extends State<HomeScreen> {
           (sum, expense) => sum + (expense.isIncome ? expense.amount : -expense.amount)
         );
 
-    // Calculate current month's transactions
     final currentMonthTransactions = HomeScreen.allExpenses
         .where((e) => 
           e.date.year == selectedMonth.year && 
@@ -162,7 +154,6 @@ class _HomeScreenState extends State<HomeScreen> {
           (sum, expense) => sum + (expense.isIncome ? expense.amount : -expense.amount)
         );
 
-    // Total wallet amount = previous months total + current month total
     walletAmount = double.parse(
       (previousMonthsTotal + currentMonthTransactions).toStringAsFixed(2)
     );
@@ -171,12 +162,10 @@ class _HomeScreenState extends State<HomeScreen> {
   void _toggleEdit() {
     setState(() {
       if (isEditing) {
-        // Validate and update wallet amount
         final newAmount = double.tryParse(amountController.text);
         if (newAmount != null && newAmount >= 0) {
           walletAmount = double.parse(newAmount.toStringAsFixed(2));
         } else {
-          // Show error message for invalid amount
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text('Please enter a valid amount'),
@@ -186,12 +175,10 @@ class _HomeScreenState extends State<HomeScreen> {
           return;
         }
 
-        // Validate and update days remaining
         final newDays = int.tryParse(daysController.text);
         if (newDays != null && newDays > 0) {
           daysRemaining = newDays;
         } else {
-          // Show error message for invalid days
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text('Please enter a valid number of days'),
@@ -201,10 +188,8 @@ class _HomeScreenState extends State<HomeScreen> {
           return;
         }
 
-        // Recalculate expense per day
         _calculateExpensePerDay();
       } else {
-        // When entering edit mode, update controllers with current values
         amountController.text = walletAmount.toStringAsFixed(2);
         daysController.text = daysRemaining.toString();
       }
@@ -232,7 +217,6 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
-  // Update the getters for calculations to use the static list
   double get totalExpenses {
     return double.parse(HomeScreen.allExpenses
         .where((e) => !e.isIncome && 
@@ -381,14 +365,11 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _applyFilters() {
-    setState(() {
-      // The filtering will be applied in the _buildExpenseList method
-    });
+    setState(() {});
   }
 
   void _onItemTapped(int index) {
     if (index == 1) {
-      // Navigate to AddScreen
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
@@ -399,7 +380,6 @@ class _HomeScreenState extends State<HomeScreen> {
       );
       return;
     } else if (index == 2) {
-      // Navigate to StatsScreen
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
@@ -426,23 +406,17 @@ class _HomeScreenState extends State<HomeScreen> {
               ListTile(
                 leading: const Icon(Icons.color_lens),
                 title: const Text('Theme'),
-                onTap: () {
-                  // Theme settings implementation will go here
-                },
+                onTap: () {},
               ),
               ListTile(
                 leading: const Icon(Icons.notifications),
                 title: const Text('Notifications'),
-                onTap: () {
-                  // Notifications settings implementation will go here
-                },
+                onTap: () {},
               ),
               ListTile(
                 leading: const Icon(Icons.backup),
                 title: const Text('Backup & Restore'),
-                onTap: () {
-                  // Backup settings implementation will go here
-                },
+                onTap: () {},
               ),
             ],
           ),
@@ -466,35 +440,29 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildExpenseList() {
-    // First filter expenses by selected month
     var filteredExpenses = HomeScreen.allExpenses.where((e) => 
       e.date.year == selectedMonth.year && 
       e.date.month == selectedMonth.month
     ).toList();
 
-    // Then filter by category if selected
     if (selectedCategory != null) {
       filteredExpenses = filteredExpenses.where((e) => e.category == selectedCategory).toList();
     }
 
-    // Sort expenses by date and time
     filteredExpenses.sort((a, b) {
-      // Compare dates first
-      int dateComparison = b.date.compareTo(a.date); // Default descending (newest first)
+      int dateComparison = b.date.compareTo(a.date);
       if (!isAscending) {
-        dateComparison = -dateComparison; // Flip for ascending order
+        dateComparison = -dateComparison;
       }
       
       if (dateComparison == 0) {
-        // If same date, sort by time
         return isAscending 
-            ? a.time.compareTo(b.time)  // Ascending: earlier times first
-            : b.time.compareTo(a.time); // Descending: later times first
+            ? a.time.compareTo(b.time)
+            : b.time.compareTo(a.time);
       }
       return dateComparison;
     });
 
-    // Group expenses by date
     Map<DateTime, List<Expense>> groupedExpenses = {};
     for (var expense in filteredExpenses) {
       final date = DateTime(expense.date.year, expense.date.month, expense.date.day);
@@ -535,8 +503,8 @@ class _HomeScreenState extends State<HomeScreen> {
         itemBuilder: (context, index) {
           final dates = groupedExpenses.keys.toList()
             ..sort((a, b) => isAscending 
-                ? a.compareTo(b)  // Ascending: older dates first
-                : b.compareTo(a)); // Descending: newer dates first
+                ? a.compareTo(b)
+                : b.compareTo(a));
           final date = dates[index];
           final dayExpenses = groupedExpenses[date]!;
           final totalForDay = dayExpenses.fold<double>(
@@ -923,7 +891,6 @@ class _HomeScreenState extends State<HomeScreen> {
                 padding: const EdgeInsets.all(16.0),
                 child: Column(
                   children: [
-                    
                     _buildExpenseList(),
                   ],
                 ),

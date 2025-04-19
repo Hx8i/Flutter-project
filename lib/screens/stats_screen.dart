@@ -13,22 +13,20 @@ class StatsScreen extends StatefulWidget {
 
 class _StatsScreenState extends State<StatsScreen> {
   DateTime selectedMonth = DateTime.now();
-  int _selectedIndex = 2; // Stats tab is selected
+  int _selectedIndex = 2;
 
   void _onItemTapped(int index) {
     if (index == 1) {
-      // Navigate to AddScreen
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
           builder: (context) => AddScreen(
-            currentWalletAmount: 0.0, // You might want to pass the current wallet amount here
+            currentWalletAmount: 0.0,
           ),
         ),
       );
       return;
     } else if (index == 0) {
-      // Navigate to HomeScreen
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
