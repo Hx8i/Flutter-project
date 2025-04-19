@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/expense.dart';
+import 'package:intl/intl.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -9,92 +10,180 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  double walletAmount = 250.0;
+  double walletAmount = 144.77;
   int daysRemaining = 13;
   bool isEditing = false;
-  double ExpensePerDay = 19.23;
+  late double ExpensePerDay;  // Will be calculated in initState
   final TextEditingController amountController = TextEditingController();
   final TextEditingController daysController = TextEditingController();
   int _selectedIndex = 0;
+  ExpenseCategory? selectedCategory;
+  bool isAscending = false;
+  DateTime selectedMonth = DateTime.now();
 
-  // Sample expense data
+  // Sample expense data with historical entries
   final List<Expense> expenses = [
+    // April 2025 (Current month)
     Expense(
-      date: DateTime.now(),
+      date: DateTime(DateTime.now().subtract(const Duration(days: 0)).year, DateTime.now().subtract(const Duration(days: 0)).month, DateTime.now().subtract(const Duration(days: 0)).day),
       time: '18:40',
       category: ExpenseCategory.work,
-      amount: 250,
+      amount: 600,
       isIncome: true,
     ),
     Expense(
-      date: DateTime.now(),
+      date: DateTime(DateTime.now().subtract(const Duration(days: 1)).year, DateTime.now().subtract(const Duration(days: 1)).month, DateTime.now().subtract(const Duration(days: 1)).day),
       time: '18:40',
       category: ExpenseCategory.gym,
       amount: 25,
     ),
     Expense(
-      date: DateTime.now(),
+      date: DateTime(DateTime.now().subtract(const Duration(days: 2)).year, DateTime.now().subtract(const Duration(days: 1)).month, DateTime.now().subtract(const Duration(days: 2)).day),
       time: '18:40',
       category: ExpenseCategory.shopping,
       amount: 55,
     ),
     Expense(
-      date: DateTime.now(),
+      date: DateTime(DateTime.now().subtract(const Duration(days: 2)).year, DateTime.now().subtract(const Duration(days: 2)).month, DateTime.now().subtract(const Duration(days: 2)).day),
       time: '18:39',
       category: ExpenseCategory.food,
       amount: 15,
     ),
     Expense(
-      date: DateTime.now(),
+      date: DateTime(DateTime.now().subtract(const Duration(days: 3)).year, DateTime.now().subtract(const Duration(days: 3)).month, DateTime.now().subtract(const Duration(days: 3)).day),
       time: '12:15',
+      category: ExpenseCategory.products,
+      amount: 95,
+    ),
+
+    // March 2025 Data
+    Expense(
+      date: DateTime(2025, 3, 15),
+      time: '09:00',
       category: ExpenseCategory.work,
-      amount: 50,
+      amount: 600,
       isIncome: true,
     ),
     Expense(
-      date: DateTime.now().subtract(const Duration(days: 1)),
-      time: '15:01',
-      category: ExpenseCategory.products,
-      amount: 25,
+      date: DateTime(2025, 3, 15),
+      time: '14:30',
+      category: ExpenseCategory.shopping,
+      amount: 120,
     ),
     Expense(
-      date: DateTime.now().subtract(const Duration(days: 1)),
-      time: '13:53',
-      category: ExpenseCategory.other,
-      amount: 25,
-    ),
-    Expense(
-      date: DateTime.now().subtract(const Duration(days: 2)),
-      time: '09:13',
-      category: ExpenseCategory.gym,
-      amount: 40,
-    ),
-    Expense(
-      date: DateTime.now().subtract(const Duration(days: 2)),
-      time: '10:20',
+      date: DateTime(2025, 3, 16),
+      time: '12:00',
       category: ExpenseCategory.food,
-      amount: 7.5,
+      amount: 45,
     ),
     Expense(
-      date: DateTime.now().subtract(const Duration(days: 2)),
-      time: '04:56',
+      date: DateTime(2025, 3, 20),
+      time: '16:45',
+      category: ExpenseCategory.medicine,
+      amount: 35,
+    ),
+    Expense(
+      date: DateTime(2025, 3, 25),
+      time: '08:30',
+      category: ExpenseCategory.gym,
+      amount: 50,
+    ),
+
+    // February 2025 Data
+    Expense(
+      date: DateTime(2025, 2, 1),
+      time: '09:00',
+      category: ExpenseCategory.work,
+      amount: 600,
+      isIncome: true,
+    ),
+    Expense(
+      date: DateTime(2025, 2, 5),
+      time: '13:20',
       category: ExpenseCategory.products,
       amount: 85,
     ),
     Expense(
-      date: DateTime.now().subtract(const Duration(days: 3)),
-      time: '05:30',
-      category: ExpenseCategory.medicine,
+      date: DateTime(2025, 2, 10),
+      time: '15:45',
+      category: ExpenseCategory.cafe,
       amount: 15,
     ),
-
+    Expense(
+      date: DateTime(2025, 2, 15),
+      time: '11:30',
+      category: ExpenseCategory.supplements,
+      amount: 40,
+    ),
+    Expense(
+      date: DateTime(2025, 2, 20),
+      time: '17:15',
+      category: ExpenseCategory.shopping,
+      amount: 95,
+    ),
   ];
 
   @override
   void initState() {
     super.initState();
+    // Set initial month to April 2025
+    selectedMonth = DateTime(2025, 4);
     amountController.text = walletAmount.toString();
     daysController.text = daysRemaining.toString();
+    _calculateExpensePerDay();
+  }
+
+  void _calculateExpensePerDay() {
+    ExpensePerDay = double.parse((walletAmount / daysRemaining).toStringAsFixed(2));
+  }
+
+  void _toggleEdit() {
+    setState(() {
+      if (isEditing) {
+        // Update wallet amount
+        walletAmount = double.parse(
+          (double.tryParse(amountController.text) ?? walletAmount).toStringAsFixed(2)
+        );
+        // Update days remaining
+        daysRemaining = int.tryParse(daysController.text) ?? daysRemaining;
+        // Recalculate expense per day
+        _calculateExpensePerDay();
+      }
+      isEditing = !isEditing;
+    });
+  }
+
+  // Update the getters for calculations
+  double get totalExpenses {
+    return double.parse(expenses
+        .where((e) => !e.isIncome && 
+            e.date.year == selectedMonth.year && 
+            e.date.month == selectedMonth.month)
+        .fold(0.0, (sum, expense) => sum + expense.amount)
+        .toStringAsFixed(2));
+  }
+
+  double get totalIncome {
+    return double.parse(expenses
+        .where((e) => e.isIncome && 
+            e.date.year == selectedMonth.year && 
+            e.date.month == selectedMonth.month)
+        .fold(0.0, (sum, expense) => sum + expense.amount)
+        .toStringAsFixed(2));
+  }
+
+  double get total => double.parse((totalIncome - totalExpenses).toStringAsFixed(2));
+
+  void _previousMonth() {
+    setState(() {
+      selectedMonth = DateTime(selectedMonth.year, selectedMonth.month - 1);
+    });
+  }
+
+  void _nextMonth() {
+    setState(() {
+      selectedMonth = DateTime(selectedMonth.year, selectedMonth.month + 1);
+    });
   }
 
   @override
@@ -102,17 +191,6 @@ class _HomeScreenState extends State<HomeScreen> {
     amountController.dispose();
     daysController.dispose();
     super.dispose();
-  }
-
-  void _toggleEdit() {
-    setState(() {
-      if (isEditing) {
-        walletAmount = double.parse((double.tryParse(amountController.text) ?? walletAmount).toStringAsFixed(2));
-        daysRemaining = int.tryParse(daysController.text) ?? daysRemaining;
-        ExpensePerDay = double.parse((walletAmount / daysRemaining).toStringAsFixed(2));
-      }
-      isEditing = !isEditing;
-    });
   }
 
   String _formatDate(DateTime date) {
@@ -138,10 +216,174 @@ class _HomeScreenState extends State<HomeScreen> {
     return months[month - 1];
   }
 
+  void _showFilterDialog() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              title: const Text('Filter Expenses'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  DropdownButton<ExpenseCategory>(
+                    isExpanded: true,
+                    value: selectedCategory,
+                    hint: const Text('Select Category'),
+                    items: ExpenseCategory.values.map((category) {
+                      return DropdownMenuItem(
+                        value: category,
+                        child: Row(
+                          children: [
+                            Icon(category.icon, size: 20),
+                            const SizedBox(width: 8),
+                            Text(category.toString().split('.').last),
+                          ],
+                        ),
+                      );
+                    }).toList(),
+                    onChanged: (value) {
+                      setState(() {
+                        selectedCategory = value;
+                      });
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      const Text('Sort by Date:'),
+                      const Spacer(),
+                      TextButton.icon(
+                        onPressed: () {
+                          setState(() {
+                            isAscending = !isAscending;
+                          });
+                        },
+                        label: Text(
+                          !isAscending ? 'Newest First' : 'Oldest First',
+                          style: const TextStyle(color: Colors.green),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    setState(() {
+                      selectedCategory = null;
+                    });
+                  },
+                  child: const Text('Clear'),
+                ),
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: const Text('Cancel'),
+                ),
+                FilledButton(
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                    _applyFilters();
+                  },
+                  child: const Text('Apply'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  void _applyFilters() {
+    setState(() {
+      // The filtering will be applied in the _buildExpenseList method
+    });
+  }
+
+  void _onItemTapped(int index) {
+    setState(() {
+      _selectedIndex = index;
+    });
+  }
+
+  void _showSettingsDialog() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Settings'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.color_lens),
+                title: const Text('Theme'),
+                onTap: () {
+                  // Theme settings implementation will go here
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.notifications),
+                title: const Text('Notifications'),
+                onTap: () {
+                  // Notifications settings implementation will go here
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.backup),
+                title: const Text('Backup & Restore'),
+                onTap: () {
+                  // Backup settings implementation will go here
+                },
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Close'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   Widget _buildExpenseList() {
+    // First filter expenses by selected month
+    var filteredExpenses = expenses.where((e) => 
+      e.date.year == selectedMonth.year && 
+      e.date.month == selectedMonth.month
+    ).toList();
+
+    // Then filter by category if selected
+    if (selectedCategory != null) {
+      filteredExpenses = filteredExpenses.where((e) => e.category == selectedCategory).toList();
+    }
+
+    // Sort expenses by date and time
+    filteredExpenses.sort((a, b) {
+      // Compare dates first
+      int dateComparison = b.date.compareTo(a.date); // Default descending (newest first)
+      if (!isAscending) {
+        dateComparison = -dateComparison; // Flip for ascending order
+      }
+      
+      if (dateComparison == 0) {
+        // If same date, sort by time
+        return isAscending 
+            ? a.time.compareTo(b.time)  // Ascending: earlier times first
+            : b.time.compareTo(a.time); // Descending: later times first
+      }
+      return dateComparison;
+    });
+
     // Group expenses by date
     Map<DateTime, List<Expense>> groupedExpenses = {};
-    for (var expense in expenses) {
+    for (var expense in filteredExpenses) {
       final date = DateTime(expense.date.year, expense.date.month, expense.date.day);
       if (!groupedExpenses.containsKey(date)) {
         groupedExpenses[date] = [];
@@ -149,11 +391,40 @@ class _HomeScreenState extends State<HomeScreen> {
       groupedExpenses[date]!.add(expense);
     }
 
+    if (groupedExpenses.isEmpty) {
+      return Expanded(
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(
+                Icons.receipt_long,
+                size: 64,
+                color: Colors.grey,
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'No transactions in ${DateFormat('MMMM yyyy').format(selectedMonth)}',
+                style: const TextStyle(
+                  fontSize: 16,
+                  color: Colors.grey,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     return Expanded(
       child: ListView.builder(
         itemCount: groupedExpenses.length,
         itemBuilder: (context, index) {
-          final date = groupedExpenses.keys.elementAt(index);
+          final dates = groupedExpenses.keys.toList()
+            ..sort((a, b) => isAscending 
+                ? a.compareTo(b)  // Ascending: older dates first
+                : b.compareTo(a)); // Descending: newer dates first
+          final date = dates[index];
           final dayExpenses = groupedExpenses[date]!;
           final totalForDay = dayExpenses.fold<double>(
             0,
@@ -177,9 +448,10 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                     Text(
                       '${totalForDay.toStringAsFixed(0)}\$',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
+                        color: totalForDay >= 0 ? Colors.green : Colors.red,
                       ),
                     ),
                   ],
@@ -205,10 +477,81 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  void _onItemTapped(int index) {
-    setState(() {
-      _selectedIndex = index;
-    });
+  Widget _buildMonthSelector() {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 16),
+      decoration: const BoxDecoration(
+        border: Border(
+          bottom: BorderSide(color: Colors.grey, width: 0.5),
+        ),
+      ),
+      child: Column(
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              IconButton(
+                icon: const Icon(Icons.chevron_left),
+                onPressed: () {
+                  setState(() {
+                    selectedMonth = DateTime(selectedMonth.year, selectedMonth.month - 1);
+                  });
+                },
+                color: Colors.green,
+              ),
+              Text(
+                DateFormat('MMMM, yyyy').format(selectedMonth),
+                style: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              IconButton(
+                icon: const Icon(Icons.chevron_right),
+                onPressed: () {
+                  setState(() {
+                    selectedMonth = DateTime(selectedMonth.year, selectedMonth.month + 1);
+                  });
+                },
+                color: Colors.green,
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              _buildSummaryCard('EXPENSE', totalExpenses, Colors.red),
+              _buildSummaryCard('INCOME', totalIncome, Colors.green),
+              _buildSummaryCard('TOTAL', total, total >= 0 ? Colors.green : Colors.red),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSummaryCard(String title, double amount, Color color) {
+    return Column(
+      children: [
+        Text(
+          title,
+          style: const TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          '\$${amount.toStringAsFixed(2)}',
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+            color: color,
+          ),
+        ),
+      ],
+    );
   }
 
   @override
@@ -216,75 +559,99 @@ class _HomeScreenState extends State<HomeScreen> {
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            children: [
-              Row(
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16.0),
+              child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Row(
+                  Row(
                     children: [
-                      Icon(Icons.check_circle_outline, color: Colors.green),
-                      SizedBox(width: 8),
-                      Icon(Icons.trending_up, color: Colors.green),
-                      SizedBox(width: 8),
+                      IconButton(
+                        icon: const Icon(Icons.settings),
+                        color: Colors.green,
+                        onPressed: _showSettingsDialog,
+                      ),
+                      const SizedBox(width: 8),
+                      IconButton(
+                        icon: const Icon(Icons.filter_list),
+                        color: selectedCategory != null ? Colors.green : Colors.grey,
+                        onPressed: _showFilterDialog,
+                      ),
                     ],
                   ),
+                  if (!isEditing)
+                    Text(
+                      '${walletAmount.toStringAsFixed(2)}\$ on $daysRemaining days',
+                      style: const TextStyle(
+                        color: Colors.green,
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+              child: Column(
+                children: [
+                  if (isEditing) ...[
+                    TextField(
+                      controller: amountController,
+                      keyboardType: TextInputType.number,
+                      decoration: const InputDecoration(
+                        labelText: 'Wallet Amount',
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    TextField(
+                      controller: daysController,
+                      keyboardType: TextInputType.number,
+                      decoration: const InputDecoration(
+                        labelText: 'Days Remaining',
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+                  ] else ...[
+                    Text(
+                      walletAmount.toStringAsFixed(2),
+                      style: const TextStyle(
+                        fontSize: 48,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: 10),
+                  TextButton(
+                    onPressed: _toggleEdit,
+                    child: Text(isEditing ? 'Save' : 'Edit'),
+                  ),
                   Text(
-                    '${walletAmount.toStringAsFixed(2)} on $daysRemaining days',
+                    '$ExpensePerDay per Day',
                     style: const TextStyle(
-                      color: Colors.green,
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 20),
-              if (isEditing) ...[
-                TextField(
-                  controller: amountController,
-                  keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(
-                    labelText: 'Wallet Amount',
-                    border: OutlineInputBorder(),
-                  ),
-                ),
-                const SizedBox(height: 10),
-                TextField(
-                  controller: daysController,
-                  keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(
-                    labelText: 'Days Remaining',
-                    border: OutlineInputBorder(),
-                  ),
-                ),
-              ] else ...[
-                Text(
-                  walletAmount.toStringAsFixed(2),
-                  style: const TextStyle(
-                    fontSize: 48,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ],
-              const SizedBox(height: 10),
-              TextButton(
-                onPressed: _toggleEdit,
-                child: Text(isEditing ? 'Save' : 'Edit'),
-              ),
-              const Divider(),
-              Text(
-                '$ExpensePerDay per Day',
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
+            ),
+            _buildMonthSelector(),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  children: [
+                    
+                    _buildExpenseList(),
+                  ],
                 ),
               ),
-              _buildExpenseList(),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
       bottomNavigationBar: BottomNavigationBar(
@@ -298,8 +665,8 @@ class _HomeScreenState extends State<HomeScreen> {
             label: 'Add',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.settings),
-            label: 'Settings',
+            icon: Icon(Icons.analytics),
+            label: 'Analysis',
           ),
         ],
         currentIndex: _selectedIndex,
