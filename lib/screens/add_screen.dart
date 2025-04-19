@@ -20,6 +20,7 @@ class _AddScreenState extends State<AddScreen> {
   bool isIncome = false;
   final TextEditingController noteController = TextEditingController();
   int _selectedIndex = 1; // Start with Add tab selected
+  DateTime selectedDate = DateTime.now();
 
   @override
   void dispose() {
@@ -44,12 +45,26 @@ class _AddScreenState extends State<AddScreen> {
     }
   }
 
+  Future<void> _selectDate(BuildContext context) async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: selectedDate,
+      firstDate: DateTime(2020),
+      lastDate: DateTime.now(),
+    );
+    if (picked != null && picked != selectedDate) {
+      setState(() {
+        selectedDate = picked;
+      });
+    }
+  }
+
   void _addExpense() {
     if (amountController.text.isEmpty) return;
 
     final now = DateTime.now();
     final expense = Expense(
-      date: now,
+      date: selectedDate,
       time: '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}',
       category: selectedCategory,
       amount: double.parse(amountController.text),
@@ -59,6 +74,15 @@ class _AddScreenState extends State<AddScreen> {
 
     // Add the expense to the static list
     HomeScreen.allExpenses.add(expense);
+
+    // Sort the expenses by date and time
+    HomeScreen.allExpenses.sort((a, b) {
+      final dateComparison = b.date.compareTo(a.date);
+      if (dateComparison == 0) {
+        return b.time.compareTo(a.time);
+      }
+      return dateComparison;
+    });
 
     // Navigate back to HomeScreen
     Navigator.pushReplacement(
@@ -248,6 +272,26 @@ class _AddScreenState extends State<AddScreen> {
                     color: Colors.green,
                   ),
                 ],
+              ),
+              const SizedBox(height: 20),
+              InkWell(
+                onTap: () => _selectDate(context),
+                child: InputDecorator(
+                  decoration: const InputDecoration(
+                    labelText: 'Date',
+                    border: OutlineInputBorder(),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        '${selectedDate.day}/${selectedDate.month}/${selectedDate.year}',
+                        style: const TextStyle(fontSize: 16),
+                      ),
+                      const Icon(Icons.calendar_today, color: Colors.green),
+                    ],
+                  ),
+                ),
               ),
               const SizedBox(height: 20),
               TextField(

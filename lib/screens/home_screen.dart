@@ -156,8 +156,42 @@ class _HomeScreenState extends State<HomeScreen> {
   void _toggleEdit() {
     setState(() {
       if (isEditing) {
-        daysRemaining = int.tryParse(daysController.text) ?? daysRemaining;
+        // Validate and update wallet amount
+        final newAmount = double.tryParse(amountController.text);
+        if (newAmount != null && newAmount >= 0) {
+          walletAmount = double.parse(newAmount.toStringAsFixed(2));
+        } else {
+          // Show error message for invalid amount
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Please enter a valid amount'),
+              backgroundColor: Colors.red,
+            ),
+          );
+          return;
+        }
+
+        // Validate and update days remaining
+        final newDays = int.tryParse(daysController.text);
+        if (newDays != null && newDays > 0) {
+          daysRemaining = newDays;
+        } else {
+          // Show error message for invalid days
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Please enter a valid number of days'),
+              backgroundColor: Colors.red,
+            ),
+          );
+          return;
+        }
+
+        // Recalculate expense per day
         _calculateExpensePerDay();
+      } else {
+        // When entering edit mode, update controllers with current values
+        amountController.text = walletAmount.toStringAsFixed(2);
+        daysController.text = daysRemaining.toString();
       }
       isEditing = !isEditing;
     });
@@ -399,6 +433,14 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  void _deleteExpense(Expense expense) {
+    setState(() {
+      HomeScreen.allExpenses.remove(expense);
+      _calculateWalletAmount();
+      _calculateExpensePerDay();
+    });
+  }
+
   Widget _buildExpenseList() {
     // First filter expenses by selected month
     var filteredExpenses = HomeScreen.allExpenses.where((e) => 
@@ -504,17 +546,111 @@ class _HomeScreenState extends State<HomeScreen> {
                   ],
                 ),
               ),
-              ...dayExpenses.map((expense) => ListTile(
-                leading: Icon(expense.category.icon),
-                title: Text(expense.category.name),
-                trailing: Text(
-                  '${expense.isIncome ? '+' : '-'}${expense.amount.toStringAsFixed(0)}\$',
-                  style: TextStyle(
-                    color: expense.isIncome ? Colors.green : Colors.red,
-                    fontWeight: FontWeight.bold,
+              ...dayExpenses.map((expense) => Container(
+                margin: const EdgeInsets.symmetric(vertical: 4),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.grey.withOpacity(0.1),
+                      spreadRadius: 1,
+                      blurRadius: 4,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: ListTile(
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  leading: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: expense.isIncome 
+                          ? Colors.green.withOpacity(0.1)
+                          : Colors.red.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Icon(
+                      expense.category.icon,
+                      color: expense.isIncome ? Colors.green : Colors.red,
+                    ),
+                  ),
+                  title: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        expense.category.name,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                      ),
+                      Text(
+                        '${expense.isIncome ? '+' : '-'}${expense.amount.toStringAsFixed(0)}\$',
+                        style: TextStyle(
+                          color: expense.isIncome ? Colors.green : Colors.red,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                      ),
+                    ],
+                  ),
+                  subtitle: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        expense.time,
+                        style: const TextStyle(
+                          color: Colors.grey,
+                          fontSize: 14,
+                        ),
+                      ),
+                      if (expense.note != null && expense.note!.isNotEmpty)
+                        Text(
+                          expense.note!,
+                          style: const TextStyle(
+                            fontStyle: FontStyle.italic,
+                            color: Colors.grey,
+                            fontSize: 14,
+                          ),
+                        ),
+                    ],
+                  ),
+                  trailing: Container(
+                    decoration: BoxDecoration(
+                      color: Colors.red.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: IconButton(
+                      icon: const Icon(Icons.delete_outline, color: Colors.red),
+                      onPressed: () {
+                        showDialog(
+                          context: context,
+                          builder: (context) => AlertDialog(
+                            title: const Text('Delete Transaction'),
+                            content: const Text('Are you sure you want to delete this transaction?'),
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.pop(context),
+                                child: const Text('Cancel'),
+                              ),
+                              FilledButton(
+                                onPressed: () {
+                                  _deleteExpense(expense);
+                                  Navigator.pop(context);
+                                },
+                                style: FilledButton.styleFrom(
+                                  backgroundColor: Colors.red,
+                                ),
+                                child: const Text('Delete'),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                    ),
                   ),
                 ),
-                subtitle: Text(expense.time),
               )),
               const Divider(),
             ],
@@ -648,39 +784,110 @@ class _HomeScreenState extends State<HomeScreen> {
                     TextField(
                       controller: amountController,
                       keyboardType: TextInputType.number,
-                      decoration: const InputDecoration(
+                      decoration: InputDecoration(
                         labelText: 'Wallet Amount',
-                        border: OutlineInputBorder(),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        prefixIcon: const Icon(Icons.account_balance_wallet, color: Colors.green),
+                        prefixText: '\$',
                       ),
                     ),
                     const SizedBox(height: 10),
                     TextField(
                       controller: daysController,
                       keyboardType: TextInputType.number,
-                      decoration: const InputDecoration(
+                      decoration: InputDecoration(
                         labelText: 'Days Remaining',
-                        border: OutlineInputBorder(),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        prefixIcon: const Icon(Icons.calendar_today, color: Colors.green),
                       ),
                     ),
                   ] else ...[
-                    Text(
-                      walletAmount.toStringAsFixed(2),
-                      style: const TextStyle(
-                        fontSize: 48,
-                        fontWeight: FontWeight.bold,
+                    Container(
+                      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
+                      decoration: BoxDecoration(
+                        color: Colors.green.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: Colors.green.withOpacity(0.3)),
+                      ),
+                      child: Column(
+                        children: [
+                          const Text(
+                            'Available Balance',
+                            style: TextStyle(
+                              fontSize: 16,
+                              color: Colors.grey,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            '\$${walletAmount.toStringAsFixed(2)}',
+                            style: const TextStyle(
+                              fontSize: 48,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.green,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'for $daysRemaining days',
+                            style: const TextStyle(
+                              fontSize: 16,
+                              color: Colors.grey,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ],
-                  const SizedBox(height: 10),
-                  TextButton(
-                    onPressed: _toggleEdit,
-                    child: Text(isEditing ? 'Save' : 'Edit'),
+                  const SizedBox(height: 16),
+                  Container(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.green),
+                    ),
+                    child: TextButton.icon(
+                      onPressed: _toggleEdit,
+                      icon: Icon(
+                        isEditing ? Icons.save : Icons.edit,
+                        color: Colors.green,
+                      ),
+                      label: Text(
+                        isEditing ? 'Save' : 'Edit',
+                        style: const TextStyle(
+                          color: Colors.green,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      style: TextButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                      ),
+                    ),
                   ),
-                  Text(
-                    '$ExpensePerDay per Day',
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
+                  const SizedBox(height: 16),
+                  Container(
+                    padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+                    decoration: BoxDecoration(
+                      color: Colors.grey.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.wallet, color: Colors.grey),
+                        const SizedBox(width: 8),
+                        Text(
+                          '\$${ExpensePerDay.toStringAsFixed(2)} per Day',
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.grey,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ],
