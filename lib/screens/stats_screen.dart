@@ -5,7 +5,14 @@ import 'home_screen.dart';
 import 'add_screen.dart';
 
 class StatsScreen extends StatefulWidget {
-  const StatsScreen({super.key});
+  final Function() onThemeToggle;
+  final bool isDarkMode;
+
+  const StatsScreen({
+    super.key,
+    required this.onThemeToggle,
+    required this.isDarkMode,
+  });
 
   @override
   State<StatsScreen> createState() => _StatsScreenState();
@@ -22,6 +29,8 @@ class _StatsScreenState extends State<StatsScreen> {
         MaterialPageRoute(
           builder: (context) => AddScreen(
             currentWalletAmount: 0.0,
+            onThemeToggle: widget.onThemeToggle,
+            isDarkMode: widget.isDarkMode,
           ),
         ),
       );
@@ -30,7 +39,10 @@ class _StatsScreenState extends State<StatsScreen> {
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
-          builder: (context) => const HomeScreen(),
+          builder: (context) => HomeScreen(
+            onThemeToggle: widget.onThemeToggle,
+            isDarkMode: widget.isDarkMode,
+          ),
         ),
       );
       return;
@@ -91,8 +103,9 @@ class _StatsScreenState extends State<StatsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: theme.scaffoldBackgroundColor,
       body: SafeArea(
         child: Column(
           children: [
@@ -104,19 +117,20 @@ class _StatsScreenState extends State<StatsScreen> {
                   IconButton(
                     icon: const Icon(Icons.chevron_left),
                     onPressed: _previousMonth,
-                    color: Colors.green,
+                    color: theme.colorScheme.primary,
                   ),
                   Text(
                     DateFormat('MMMM, yyyy').format(selectedMonth),
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
+                      color: theme.colorScheme.onBackground,
                     ),
                   ),
                   IconButton(
                     icon: const Icon(Icons.chevron_right),
                     onPressed: _nextMonth,
-                    color: Colors.green,
+                    color: theme.colorScheme.primary,
                   ),
                 ],
               ),
@@ -127,9 +141,9 @@ class _StatsScreenState extends State<StatsScreen> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: [
-                  _buildSummaryCard('EXPENSE', totalExpenses, Colors.red),
-                  _buildSummaryCard('INCOME', totalIncome, Colors.green),
-                  _buildSummaryCard('TOTAL', total, total >= 0 ? Colors.green : Colors.red),
+                  _buildSummaryCard('EXPENSE', totalExpenses, theme.colorScheme.error),
+                  _buildSummaryCard('INCOME', totalIncome, theme.colorScheme.primary),
+                  _buildSummaryCard('TOTAL', total, total >= 0 ? theme.colorScheme.primary : theme.colorScheme.error),
                 ],
               ),
             ),
@@ -138,11 +152,12 @@ class _StatsScreenState extends State<StatsScreen> {
               child: ListView(
                 padding: const EdgeInsets.all(16),
                 children: [
-                  const Text(
+                  Text(
                     'Expenses by Category',
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
+                      color: theme.colorScheme.onBackground,
                     ),
                   ),
                   const SizedBox(height: 16),
@@ -158,22 +173,24 @@ class _StatsScreenState extends State<StatsScreen> {
                             children: [
                               Row(
                                 children: [
-                                  Icon(entry.key.icon, color: Colors.red),
+                                  Icon(entry.key.icon, color: theme.colorScheme.error),
                                   const SizedBox(width: 8),
                                   Text(
                                     entry.key.name,
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                       fontSize: 16,
                                       fontWeight: FontWeight.bold,
+                                      color: theme.colorScheme.onBackground,
                                     ),
                                   ),
                                 ],
                               ),
                               Text(
                                 '\$${entry.value.toStringAsFixed(2)} ($percentage%)',
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.bold,
+                                  color: theme.colorScheme.onBackground,
                                 ),
                               ),
                             ],
@@ -181,8 +198,8 @@ class _StatsScreenState extends State<StatsScreen> {
                           const SizedBox(height: 8),
                           LinearProgressIndicator(
                             value: entry.value / totalExpenses,
-                            backgroundColor: Colors.red.withOpacity(0.1),
-                            valueColor: const AlwaysStoppedAnimation<Color>(Colors.red),
+                            backgroundColor: theme.colorScheme.error.withOpacity(0.1),
+                            valueColor: AlwaysStoppedAnimation<Color>(theme.colorScheme.error),
                           ),
                         ],
                       ),
@@ -210,13 +227,15 @@ class _StatsScreenState extends State<StatsScreen> {
           ),
         ],
         currentIndex: _selectedIndex,
-        selectedItemColor: Colors.green,
+        selectedItemColor: theme.colorScheme.primary,
+        backgroundColor: theme.scaffoldBackgroundColor,
         onTap: _onItemTapped,
       ),
     );
   }
 
   Widget _buildSummaryCard(String title, double amount, Color color) {
+    final theme = Theme.of(context);
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
